@@ -1,220 +1,247 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>かけ算クイズ</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    :root {
-      --bg: #ffffff;
-      --bg2: #f4f3ef;
-      --bg3: #eceae4;
-      --text: #1a1a1a;
-      --text2: #888780;
-      --border: rgba(0,0,0,0.13);
-      --border2: rgba(0,0,0,0.22);
-      --accent: #533AB7;
-      --accent-d: #3C2B8C;
-      --correct: #1D9E75;
-      --wrong: #D85A30;
-      --r-lg: 12px;
-      --r-xl: 16px;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #181818;
-        --bg2: #242422;
-        --bg3: #2d2d2b;
-        --text: #f0efea;
-        --text2: #888780;
-        --border: rgba(255,255,255,0.1);
-        --border2: rgba(255,255,255,0.2);
-      }
-    }
-    body {
-      font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      display: flex;
-      justify-content: center;
-    }
-    #app {
-      width: 100%;
-      max-width: 420px;
-      padding: 1.25rem 1rem 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-    }
-    .header-row {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .left-info { display: flex; flex-direction: column; gap: 1px; }
-    .left-label { font-size: 11px; color: var(--text2); }
-    .left-num { font-size: 28px; font-weight: 500; color: var(--accent); line-height: 1; }
-    .left-remain { font-size: 11px; color: var(--text2); }
-    .end-btn {
-      padding: 8px 18px;
-      border-radius: 20px;
-      border: 0.5px solid var(--border2);
-      background: var(--bg2);
-      color: var(--text2);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .end-btn:active { background: var(--bg3); transform: scale(0.96); }
-    .score-row {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      color: var(--text2);
-    }
-    .score-val { font-size: 15px; font-weight: 500; color: var(--text); }
-    .streak-num { font-size: 15px; font-weight: 500; color: #BA7517; }
-    .progress-wrap {
-      width: 100%;
-      height: 4px;
-      background: var(--bg3);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    }
-    .question-card {
-      width: 100%;
-      background: var(--bg3);
-      border-radius: var(--r-xl);
-      padding: 1.75rem 1.5rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      border: 0.5px solid var(--border);
-    }
-    .question-text {
-      font-size: 52px;
-      font-weight: 500;
-      color: var(--text);
-      letter-spacing: -1px;
-    }
-    .answer-display {
-      font-size: 38px;
-      font-weight: 500;
-      min-width: 100px;
-      min-height: 56px;
-      border-bottom: 2.5px solid var(--border2);
-      text-align: center;
-      color: var(--text);
-      padding-bottom: 4px;
-      transition: color 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .answer-display.correct { color: var(--correct); border-color: var(--correct); }
-    .answer-display.wrong   { color: var(--wrong);   border-color: var(--wrong); }
-    .feedback {
-      font-size: 15px;
-      min-height: 22px;
-      color: var(--text2);
-      text-align: center;
-      font-weight: 500;
-    }
-    .feedback.correct { color: var(--correct); }
-    .feedback.wrong   { color: var(--wrong); }
-    .keypad {
-      width: 100%;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 9px;
-    }
-    .key {
-      background: var(--bg);
-      border: 0.5px solid var(--border2);
-      border-radius: var(--r-lg);
-      height: 68px;
-      font-size: 26px;
-      font-weight: 500;
-      color: var(--text);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-user-select: none;
-      transition: background 0.08s, transform 0.08s;
-    }
-    .key:active { background: var(--bg2); transform: scale(0.95); }
-    .key.del { font-size: 15px; color: var(--text2); background: var(--bg2); }
-    .key.enter {
-      font-size: 16px; font-weight: 500;
-      color: #fff; background: var(--accent); border-color: transparent;
-    }
-    .key.enter:active { background: var(--accent-d); }
-    .key[disabled] { opacity: 0.35; pointer-events: none; }
-    .hidden { display: none !important; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>かけ算クイズ</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #ffffff;
+  --bg2: #f4f3ef;
+  --bg3: #eceae4;
+  --text: #1a1a1a;
+  --text2: #888780;
+  --border: rgba(0,0,0,0.13);
+  --border2: rgba(0,0,0,0.22);
+  --accent: #533AB7;
+  --accent-d: #3C2B8C;
+  --correct: #1D9E75;
+  --wrong: #D85A30;
+  --r-lg: 12px;
+  --r-xl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181818;
+    --bg2: #242422;
+    --bg3: #2d2d2b;
+    --text: #f0efea;
+    --text2: #888780;
+    --border: rgba(255,255,255,0.1);
+    --border2: rgba(255,255,255,0.2);
+  }
+}
+body {
+  font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+#app {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.25rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.left-info { display: flex; flex-direction: column; gap: 1px; }
+.left-label { font-size: 11px; color: var(--text2); }
+.left-num { font-size: 28px; font-weight: 500; color: var(--accent); line-height: 1; }
+.left-remain { font-size: 11px; color: var(--text2); }
+.end-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 0.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.end-btn:active { background: var(--bg3); transform: scale(0.96); }
+.score-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text2);
+}
+.score-val { font-size: 15px; font-weight: 500; color: var(--text); }
+.streak-num { font-size: 15px; font-weight: 500; color: #BA7517; }
+.progress-wrap {
+  width: 100%;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.question-card {
+  width: 100%;
+  background: var(--bg3);
+  border-radius: var(--r-xl);
+  padding: 1.75rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  border: 0.5px solid var(--border);
+}
+.question-text {
+  font-size: 52px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -1px;
+}
+.answer-display {
+  font-size: 38px;
+  font-weight: 500;
+  min-width: 100px;
+  min-height: 56px;
+  border-bottom: 2.5px solid var(--border2);
+  text-align: center;
+  color: var(--text);
+  padding-bottom: 4px;
+  transition: color 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.answer-display.correct { color: var(--correct); border-color: var(--correct); }
+.answer-display.wrong { color: var(--wrong); border-color: var(--wrong); }
+.feedback {
+  font-size: 15px;
+  min-height: 22px;
+  color: var(--text2);
+  text-align: center;
+  font-weight: 500;
+}
+.feedback.correct { color: var(--correct); }
+.feedback.wrong { color: var(--wrong); }
+.keypad {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+.key {
+  background: var(--bg);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--r-lg);
+  height: 68px;
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.08s, transform 0.08s;
+}
+.key:active { background: var(--bg2); transform: scale(0.95); }
+.key.del { font-size: 15px; color: var(--text2); background: var(--bg2); }
+.key.enter {
+  font-size: 16px; font-weight: 500;
+  color: #fff; background: var(--accent); border-color: transparent;
+}
+.key.enter:active { background: var(--accent-d); }
+.key[disabled] { opacity: 0.35; pointer-events: none; }
+.hidden { display: none !important; }
 
-    /* heatmap */
-    #heatmap-section { width: 100%; }
-    .heatmap-title { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 4px; }
-    .heatmap-sub { font-size: 12px; color: var(--text2); text-align: center; margin-bottom: 1rem; }
-    .heatmap-grid {
-      width: 100%;
-      display: grid;
-      grid-template-columns: 24px repeat(8, 1fr);
-      gap: 3px;
-    }
-    .hm-head {
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 500; color: var(--text2); height: 26px;
-    }
-    .hm-cell {
-      aspect-ratio: 1;
-      border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 9px; font-weight: 500; color: #fff;
-      position: relative;
-    }
-    .heatmap-legend {
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; margin-top: 8px;
-      font-size: 11px; color: var(--text2);
-    }
-    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 3px; }
-    .hm-stats {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1rem;
-    }
-    .stat-card {
-      background: var(--bg2); border-radius: var(--r-lg);
-      padding: 0.75rem 1rem; text-align: center;
-    }
-    .s-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
-    .s-val { font-size: 22px; font-weight: 500; }
-    .restart-btn {
-      width: 100%; height: 52px; border-radius: var(--r-lg);
-      border: none; background: var(--accent); color: #fff;
-      font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 1.25rem;
-      transition: background 0.15s, transform 0.1s;
-    }
-    .restart-btn:active { background: var(--accent-d); transform: scale(0.98); }
-  </style>
+/* storage notice banner */
+.storage-notice {
+  width: 100%;
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 12px;
+  color: var(--text2);
+}
+.storage-notice .notice-icon { font-size: 14px; }
+.storage-notice .notice-text { flex: 1; }
+.storage-notice .clear-btn {
+  background: none;
+  border: 0.5px solid var(--border2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--wrong);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.storage-notice .clear-btn:active { opacity: 0.7; }
+
+/* heatmap */
+#heatmap-section { width: 100%; }
+.heatmap-title { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 4px; }
+.heatmap-sub { font-size: 12px; color: var(--text2); text-align: center; margin-bottom: 1rem; }
+.heatmap-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 24px repeat(8, 1fr);
+  gap: 3px;
+}
+.hm-head {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: var(--text2); height: 26px;
+}
+.hm-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 500; color: #fff;
+  position: relative;
+}
+.heatmap-legend {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin-top: 8px;
+  font-size: 11px; color: var(--text2);
+}
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 3px; }
+.hm-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1rem;
+}
+.stat-card {
+  background: var(--bg2); border-radius: var(--r-lg);
+  padding: 0.75rem 1rem; text-align: center;
+}
+.s-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.s-val { font-size: 22px; font-weight: 500; }
+.restart-btn {
+  width: 100%; height: 52px; border-radius: var(--r-lg);
+  border: none; background: var(--accent); color: #fff;
+  font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 1.25rem;
+  transition: background 0.15s, transform 0.1s;
+}
+.restart-btn:active { background: var(--accent-d); transform: scale(0.98); }
+</style>
 </head>
 <body>
 <div id="app">
-
   <div id="quiz-section" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:1rem;">
     <div class="header-row">
       <div class="left-info">
@@ -225,16 +252,21 @@
       <button class="end-btn" id="end-btn">終了 →</button>
     </div>
 
+    <!-- Storage notice -->
+    <div class="storage-notice" id="storage-notice">
+      <span class="notice-icon">💾</span>
+      <span class="notice-text" id="notice-text">記録を読み込み中…</span>
+      <button class="clear-btn" id="clear-btn">リセット</button>
+    </div>
+
     <div class="score-row">
       <span>正解 <span class="score-val" id="correct-count">0</span></span>
       <span>連続 <span class="streak-num" id="streak-count">0</span></span>
       <span>合計 <span class="score-val" id="total-count">0</span></span>
     </div>
-
     <div class="progress-wrap">
       <div class="progress-fill" id="progress-fill" style="width:0%"></div>
     </div>
-
     <div class="question-card">
       <div class="question-text" id="question-text">? × ? ＝</div>
       <div class="answer-display" id="answer-display">
@@ -242,7 +274,6 @@
       </div>
       <div class="feedback" id="feedback"></div>
     </div>
-
     <div class="keypad" id="keypad">
       <button class="key" data-n="1">1</button>
       <button class="key" data-n="2">2</button>
@@ -261,27 +292,78 @@
 
   <div id="heatmap-section" class="hidden">
     <div class="heatmap-title">九九ヒートマップ</div>
-    <div class="heatmap-sub">赤いほど間違えやすい問題です</div>
+    <div class="heatmap-sub">赤いほど間違えやすい問題です（累積記録）</div>
     <div class="heatmap-grid" id="heatmap-grid"></div>
     <div class="heatmap-legend">
-      <span><span class="legend-swatch" style="background:#c8e6d8;border:0.5px solid rgba(0,0,0,0.1)"></span>未回答</span>
+      <span><span class="legend-swatch" style="background:var(--bg3);border:0.5px solid rgba(0,0,0,0.1)"></span>未回答</span>
       <span><span class="legend-swatch" style="background:#1D9E75"></span>得意</span>
       <span><span class="legend-swatch" style="background:#D85A30"></span>苦手</span>
     </div>
     <div class="hm-stats" id="hm-stats"></div>
     <button class="restart-btn" id="restart-btn">もう一度やる</button>
   </div>
-
 </div>
+
 <script>
 (function () {
-  // stats[i][j] i,j in 2..9
-  const stats = {};
-  for (let i = 2; i <= 9; i++) {
-    stats[i] = {};
-    for (let j = 2; j <= 9; j++) stats[i][j] = { attempts: 0, wrong: 0 };
+  const STORAGE_KEY = 'quiz_stats_v1';
+
+  // ── localStorage helpers ──────────────────────────
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
   }
 
+  function saveStats() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+    } catch (e) {
+      // quota exceeded etc. — fail silently
+    }
+  }
+
+  function clearStats() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  }
+
+  function totalAttemptsInStats(s) {
+    let t = 0;
+    for (let i = 2; i <= 9; i++)
+      for (let j = 2; j <= 9; j++)
+        t += s[i][j].attempts;
+    return t;
+  }
+
+  // ── stats[i][j] i,j in 2..9 ──────────────────────
+  function makeEmptyStats() {
+    const s = {};
+    for (let i = 2; i <= 9; i++) {
+      s[i] = {};
+      for (let j = 2; j <= 9; j++) s[i][j] = { attempts: 0, wrong: 0 };
+    }
+    return s;
+  }
+
+  // Load persisted stats or start fresh
+  let stats = loadStats() || makeEmptyStats();
+
+  // Update the notice banner
+  function updateNotice() {
+    const total = totalAttemptsInStats(stats);
+    const noticeText = document.getElementById('notice-text');
+    if (total === 0) {
+      noticeText.textContent = '記録なし（初回プレイ）';
+    } else {
+      noticeText.textContent = `累積 ${total} 問の記録を引き継いでいます`;
+    }
+  }
+
+  // ── game state ────────────────────────────────────
   let leftOp = 2;
   let leftRemain = 20;
   let userInput = '';
@@ -290,21 +372,21 @@
   let lastB = -1;
   let totalCorrect = 0, totalAnswered = 0, streak = 0;
 
-  const quizSection    = document.getElementById('quiz-section');
-  const heatmapSection = document.getElementById('heatmap-section');
-  const leftDisplay    = document.getElementById('left-display');
-  const leftRemainEl   = document.getElementById('left-remain');
-  const correctCount   = document.getElementById('correct-count');
-  const streakCount    = document.getElementById('streak-count');
-  const totalCount     = document.getElementById('total-count');
-  const progressFill   = document.getElementById('progress-fill');
-  const questionEl     = document.getElementById('question-text');
-  const answerDisplay  = document.getElementById('answer-display');
-  const answerVal      = document.getElementById('answer-val');
-  const feedbackEl     = document.getElementById('feedback');
-  const enterBtn       = document.getElementById('enter-btn');
-  const heatmapGrid    = document.getElementById('heatmap-grid');
-  const hmStats        = document.getElementById('hm-stats');
+  const quizSection   = document.getElementById('quiz-section');
+  const heatmapSection= document.getElementById('heatmap-section');
+  const leftDisplay   = document.getElementById('left-display');
+  const leftRemainEl  = document.getElementById('left-remain');
+  const correctCount  = document.getElementById('correct-count');
+  const streakCount   = document.getElementById('streak-count');
+  const totalCount    = document.getElementById('total-count');
+  const progressFill  = document.getElementById('progress-fill');
+  const questionEl    = document.getElementById('question-text');
+  const answerDisplay = document.getElementById('answer-display');
+  const answerVal     = document.getElementById('answer-val');
+  const feedbackEl    = document.getElementById('feedback');
+  const enterBtn      = document.getElementById('enter-btn');
+  const heatmapGrid   = document.getElementById('heatmap-grid');
+  const hmStats       = document.getElementById('hm-stats');
 
   function pickLeftOp() {
     leftOp = Math.floor(Math.random() * 8) + 2; // 2-9
@@ -318,16 +400,15 @@
     progressFill.style.width = ((20 - leftRemain) / 20 * 100) + '%';
   }
 
-  // Weighted pick of right operand (2-9) — wrong pairs get higher weight, same as last excluded
   function pickRightOp() {
     const ws = [];
     for (let j = 2; j <= 9; j++) {
-      if (j === lastB) continue; // skip same as previous question
+      if (j === lastB) continue;
       const s1 = stats[leftOp][j];
       const s2 = stats[j] ? stats[j][leftOp] : null;
       const att = s1.attempts + (s2 ? s2.attempts : 0);
       const wrg = s1.wrong   + (s2 ? s2.wrong   : 0);
-      const er = att > 0 ? wrg / att : 0;
+      const er  = att > 0 ? wrg / att : 0;
       ws.push({ j, w: 1 + er * 5 });
     }
     const total = ws.reduce((s, x) => s + x.w, 0);
@@ -347,11 +428,11 @@
     curAnswer = curA * curB;
     questionEl.textContent = curA + ' × ' + curB + ' ＝';
     userInput = '';
-    answered = false;
+    answered  = false;
     answerVal.textContent = '＿';
     answerDisplay.className = 'answer-display';
-    feedbackEl.textContent = '';
-    feedbackEl.className = 'feedback';
+    feedbackEl.textContent  = '';
+    feedbackEl.className    = 'feedback';
     enterBtn.removeAttribute('disabled');
   }
 
@@ -360,7 +441,7 @@
     answered = true;
     enterBtn.setAttribute('disabled', 'true');
 
-    const n = parseInt(userInput, 10);
+    const n  = parseInt(userInput, 10);
     const ok = n === curAnswer;
 
     stats[curA][curB].attempts++;
@@ -373,25 +454,26 @@
       totalCorrect++;
       streak++;
       correctCount.textContent = totalCorrect;
-      streakCount.textContent = streak;
+      streakCount.textContent  = streak;
       answerDisplay.classList.add('correct');
-      feedbackEl.className = 'feedback correct';
+      feedbackEl.className  = 'feedback correct';
       feedbackEl.textContent = streak >= 3 ? '正解！ 🔥 ' + streak + '連続！' : '正解！';
+      saveStats(); // ← persist after every answer
       setTimeout(newQuestion, 450);
     } else {
       stats[curA][curB].wrong++;
       streak = 0;
       streakCount.textContent = '0';
       answerDisplay.classList.add('wrong');
-      feedbackEl.className = 'feedback wrong';
-      feedbackEl.textContent = '✗  正解は ' + curAnswer;
+      feedbackEl.className   = 'feedback wrong';
+      feedbackEl.textContent = '✗ 正解は ' + curAnswer;
+      saveStats(); // ← persist after every answer
       setTimeout(newQuestion, 1300);
     }
   }
 
-  // ── heatmap ──────────────────────────────────────────
+  // ── heatmap ──────────────────────────────────────
   function lerpColor(t) {
-    // t=0 → green #1D9E75 , t=1 → red-orange #D85A30
     const r = Math.round(0x1D + t * (0xD8 - 0x1D));
     const g = Math.round(0x9E + t * (0x5A - 0x9E));
     const b = Math.round(0x75 + t * (0x30 - 0x75));
@@ -406,21 +488,24 @@
 
   function buildHeatmap() {
     heatmapGrid.innerHTML = '';
-    // corner
+
     const corner = document.createElement('div');
     corner.className = 'hm-head';
     heatmapGrid.appendChild(corner);
+
     for (let j = 2; j <= 9; j++) {
       const h = document.createElement('div');
       h.className = 'hm-head';
       h.textContent = j;
       heatmapGrid.appendChild(h);
     }
+
     for (let i = 2; i <= 9; i++) {
       const rl = document.createElement('div');
       rl.className = 'hm-head';
       rl.textContent = i;
       heatmapGrid.appendChild(rl);
+
       for (let j = 2; j <= 9; j++) {
         const cell = document.createElement('div');
         cell.className = 'hm-cell';
@@ -441,7 +526,7 @@
       }
     }
 
-    // summary stats
+    // summary stats (cumulative)
     let worstEr = -1, worstLbl = '-', bestEr = 2, bestLbl = '-';
     for (let i = 2; i <= 9; i++) {
       for (let j = 2; j <= 9; j++) {
@@ -452,15 +537,22 @@
         if (er < bestEr)  { bestEr  = er; bestLbl  = i + '×' + j; }
       }
     }
-    const acc = totalAnswered > 0 ? Math.round(totalCorrect / totalAnswered * 100) : 0;
+
+    const totalAll   = totalAttemptsInStats(stats);
+    let correctAll = 0;
+    for (let i = 2; i <= 9; i++)
+      for (let j = 2; j <= 9; j++)
+        correctAll += stats[i][j].attempts - stats[i][j].wrong;
+    const accAll = totalAll > 0 ? Math.round(correctAll / totalAll * 100) : 0;
+
     hmStats.innerHTML = `
       <div class="stat-card">
-        <div class="s-label">正解率</div>
-        <div class="s-val" style="color:var(--accent)">${acc}%</div>
+        <div class="s-label">累積正解率</div>
+        <div class="s-val" style="color:var(--accent)">${accAll}%</div>
       </div>
       <div class="stat-card">
-        <div class="s-label">合計問題数</div>
-        <div class="s-val">${totalAnswered}</div>
+        <div class="s-label">累積問題数</div>
+        <div class="s-val">${totalAll}</div>
       </div>
       <div class="stat-card">
         <div class="s-label">最も苦手</div>
@@ -473,20 +565,19 @@
   }
 
   function restartGame() {
-    for (let i = 2; i <= 9; i++)
-      for (let j = 2; j <= 9; j++)
-        stats[i][j] = { attempts: 0, wrong: 0 };
+    // Keep cumulative stats — only reset session counters
     totalCorrect = 0; totalAnswered = 0; streak = 0; lastB = -1;
     correctCount.textContent = '0';
-    streakCount.textContent = '0';
-    totalCount.textContent = '0';
+    streakCount.textContent  = '0';
+    totalCount.textContent   = '0';
     heatmapSection.classList.add('hidden');
     quizSection.classList.remove('hidden');
+    updateNotice();
     pickLeftOp();
     newQuestion();
   }
 
-  // ── events ──────────────────────────────────────────
+  // ── events ──────────────────────────────────────
   document.getElementById('keypad').addEventListener('click', e => {
     const btn = e.target.closest('.key');
     if (!btn || answered) return;
@@ -505,7 +596,15 @@
   document.getElementById('end-btn').addEventListener('click', showHeatmap);
   document.getElementById('restart-btn').addEventListener('click', restartGame);
 
-  // ── init ────────────────────────────────────────────
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    if (!confirm('記録をすべてリセットしますか？')) return;
+    clearStats();
+    stats = makeEmptyStats();
+    updateNotice();
+  });
+
+  // ── init ────────────────────────────────────────
+  updateNotice();
   pickLeftOp();
   newQuestion();
 })();
