@@ -52,13 +52,18 @@ body {
 .header-row {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 .left-info { display: flex; flex-direction: column; gap: 1px; }
 .left-label { font-size: 11px; color: var(--text2); }
+.left-main { display: flex; align-items: baseline; gap: 10px; }
 .left-num { font-size: 28px; font-weight: 500; color: var(--accent); line-height: 1; }
+.timer-display { font-size: 15px; font-weight: 500; color: var(--text2); line-height: 1; font-variant-numeric: tabular-nums; }
 .left-remain { font-size: 11px; color: var(--text2); }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.cumulative { font-size: 11px; color: var(--text2); font-variant-numeric: tabular-nums; }
 .end-btn {
   padding: 8px 18px;
   border-radius: 20px;
@@ -167,34 +172,6 @@ body {
 .key[disabled] { opacity: 0.35; pointer-events: none; }
 .hidden { display: none !important; }
 
-/* storage notice banner */
-.storage-notice {
-  width: 100%;
-  background: var(--bg2);
-  border: 0.5px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 0.6rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  font-size: 12px;
-  color: var(--text2);
-}
-.storage-notice .notice-icon { font-size: 14px; }
-.storage-notice .notice-text { flex: 1; }
-.storage-notice .clear-btn {
-  background: none;
-  border: 0.5px solid var(--border2);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 11px;
-  color: var(--wrong);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.storage-notice .clear-btn:active { opacity: 0.7; }
-
 /* heatmap */
 #heatmap-section { width: 100%; }
 .heatmap-title { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 4px; }
@@ -231,13 +208,47 @@ body {
 }
 .s-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
 .s-val { font-size: 22px; font-weight: 500; }
+.action-row { display: flex; gap: 8px; margin-top: 1.25rem; }
 .restart-btn {
-  width: 100%; height: 52px; border-radius: var(--r-lg);
+  flex: 1; height: 52px; border-radius: var(--r-lg);
   border: none; background: var(--accent); color: #fff;
-  font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 1.25rem;
+  font-size: 16px; font-weight: 500; cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
 .restart-btn:active { background: var(--accent-d); transform: scale(0.98); }
+.reset-btn {
+  height: 52px; padding: 0 18px; border-radius: var(--r-lg);
+  background: var(--bg2); color: var(--wrong);
+  border: 0.5px solid var(--border2);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.reset-btn:active { background: var(--bg3); transform: scale(0.98); }
+
+/* modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10;
+  padding: 1rem;
+}
+.modal-card {
+  width: 100%; max-width: 340px;
+  background: var(--bg);
+  border-radius: var(--r-xl);
+  padding: 1.75rem 1.5rem;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1rem;
+  border: 0.5px solid var(--border);
+}
+.modal-title { font-size: 20px; font-weight: 500; }
+.modal-desc { font-size: 13px; color: var(--text2); text-align: center; }
+.modal-start-btn {
+  width: 100%; height: 52px; border-radius: var(--r-lg);
+  border: none; background: var(--accent); color: #fff;
+  font-size: 16px; font-weight: 500; cursor: pointer;
+}
+.modal-start-btn:active { background: var(--accent-d); transform: scale(0.98); }
 </style>
 </head>
 <body>
@@ -246,17 +257,16 @@ body {
     <div class="header-row">
       <div class="left-info">
         <div class="left-label">いまの段</div>
-        <div class="left-num" id="left-display">?</div>
+        <div class="left-main">
+          <div class="left-num" id="left-display">?</div>
+          <div class="timer-display" id="timer-display">0秒</div>
+        </div>
         <div class="left-remain" id="left-remain">あと ? 問</div>
       </div>
-      <button class="end-btn" id="end-btn">終了 →</button>
-    </div>
-
-    <!-- Storage notice -->
-    <div class="storage-notice" id="storage-notice">
-      <span class="notice-icon">💾</span>
-      <span class="notice-text" id="notice-text">記録を読み込み中…</span>
-      <button class="clear-btn" id="clear-btn">リセット</button>
+      <div class="header-right">
+        <div class="cumulative" id="cumulative-display">累積 0 問</div>
+        <button class="end-btn" id="end-btn">終了 →</button>
+      </div>
     </div>
 
     <div class="score-row">
@@ -300,106 +310,148 @@ body {
       <span><span class="legend-swatch" style="background:#D85A30"></span>苦手</span>
     </div>
     <div class="hm-stats" id="hm-stats"></div>
-    <button class="restart-btn" id="restart-btn">もう一度やる</button>
+    <div class="action-row">
+      <button class="restart-btn" id="restart-btn">もう一度やる</button>
+      <button class="reset-btn" id="clear-btn">記録リセット</button>
+    </div>
+  </div>
+</div>
+
+<!-- start modal -->
+<div class="modal-overlay" id="start-modal">
+  <div class="modal-card">
+    <div class="modal-title">かけ算クイズ</div>
+    <div class="modal-desc">スタートで計測開始。<br>各問題の経過時間を記録します。</div>
+    <button class="modal-start-btn" id="start-btn">スタート</button>
   </div>
 </div>
 
 <script>
 (function () {
   const STORAGE_KEY = 'quiz_stats_v1';
+  const ROUND_SIZE  = 20;
 
-  // ── localStorage helpers ──────────────────────────
-  function loadStats() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch (e) {
-      return null;
-    }
-  }
+  // ── dom refs ─────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const dom = {
+    quizSection:   $('quiz-section'),
+    heatmapSection:$('heatmap-section'),
+    startModal:    $('start-modal'),
+    leftDisplay:   $('left-display'),
+    timerDisplay:  $('timer-display'),
+    leftRemain:    $('left-remain'),
+    cumulative:    $('cumulative-display'),
+    correctCount:  $('correct-count'),
+    streakCount:   $('streak-count'),
+    totalCount:    $('total-count'),
+    progressFill:  $('progress-fill'),
+    question:      $('question-text'),
+    answerDisplay: $('answer-display'),
+    answerVal:     $('answer-val'),
+    feedback:      $('feedback'),
+    enterBtn:      $('enter-btn'),
+    keypad:        $('keypad'),
+    endBtn:        $('end-btn'),
+    startBtn:      $('start-btn'),
+    clearBtn:      $('clear-btn'),
+    restartBtn:    $('restart-btn'),
+    heatmapGrid:   $('heatmap-grid'),
+    hmStats:       $('hm-stats'),
+  };
 
-  function saveStats() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-    } catch (e) {
-      // quota exceeded etc. — fail silently
-    }
-  }
-
-  function clearStats() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  }
-
-  function totalAttemptsInStats(s) {
-    let t = 0;
-    for (let i = 2; i <= 9; i++)
-      for (let j = 2; j <= 9; j++)
-        t += s[i][j].attempts;
-    return t;
-  }
-
-  // ── stats[i][j] i,j in 2..9 ──────────────────────
+  // ── storage ──────────────────────────────────────
   function makeEmptyStats() {
     const s = {};
     for (let i = 2; i <= 9; i++) {
       s[i] = {};
-      for (let j = 2; j <= 9; j++) s[i][j] = { attempts: 0, wrong: 0 };
+      for (let j = 2; j <= 9; j++) s[i][j] = { attempts: 0, wrong: 0, times: [] };
     }
     return s;
   }
-
-  // Load persisted stats or start fresh
-  let stats = loadStats() || makeEmptyStats();
-
-  // Update the notice banner
-  function updateNotice() {
-    const total = totalAttemptsInStats(stats);
-    const noticeText = document.getElementById('notice-text');
-    if (total === 0) {
-      noticeText.textContent = '記録なし（初回プレイ）';
-    } else {
-      noticeText.textContent = `累積 ${total} 問の記録を引き継いでいます`;
+  function migrateStats(s) {
+    // fill missing cells / times[] for old records
+    for (let i = 2; i <= 9; i++) {
+      if (!s[i]) s[i] = {};
+      for (let j = 2; j <= 9; j++) {
+        if (!s[i][j]) s[i][j] = { attempts: 0, wrong: 0, times: [] };
+        else if (!Array.isArray(s[i][j].times)) s[i][j].times = [];
+      }
     }
+    return s;
+  }
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? migrateStats(JSON.parse(raw)) : makeEmptyStats();
+    } catch (e) { return makeEmptyStats(); }
+  }
+  function saveStats() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) {}
+  }
+  function clearStorage() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  }
+  function totalAttempts() {
+    let t = 0;
+    for (let i = 2; i <= 9; i++)
+      for (let j = 2; j <= 9; j++) t += stats[i][j].attempts;
+    return t;
   }
 
-  // ── game state ────────────────────────────────────
+  // ── timer ────────────────────────────────────────
+  const timer = {
+    tickId: null,
+    startedAt: 0,
+    questionStartedAt: 0,
+    start() {
+      this.startedAt = this.questionStartedAt = Date.now();
+      this.render();
+      this.tickId = setInterval(() => this.render(), 200);
+    },
+    stop() {
+      if (this.tickId) { clearInterval(this.tickId); this.tickId = null; }
+    },
+    resetQuestion() { this.questionStartedAt = Date.now(); },
+    elapsedForQuestion() {
+      return (Date.now() - this.questionStartedAt) / 1000;
+    },
+    render() {
+      const sec = Math.floor((Date.now() - this.startedAt) / 1000);
+      dom.timerDisplay.textContent = sec + '秒';
+    },
+  };
+
+  // ── game state ───────────────────────────────────
+  let stats = loadStats();
   let leftOp = 2;
-  let leftRemain = 20;
+  let leftRemain = ROUND_SIZE;
   let userInput = '';
   let answered = false;
   let curA, curB, curAnswer;
   let lastB = -1;
   let totalCorrect = 0, totalAnswered = 0, streak = 0;
 
-  const quizSection   = document.getElementById('quiz-section');
-  const heatmapSection= document.getElementById('heatmap-section');
-  const leftDisplay   = document.getElementById('left-display');
-  const leftRemainEl  = document.getElementById('left-remain');
-  const correctCount  = document.getElementById('correct-count');
-  const streakCount   = document.getElementById('streak-count');
-  const totalCount    = document.getElementById('total-count');
-  const progressFill  = document.getElementById('progress-fill');
-  const questionEl    = document.getElementById('question-text');
-  const answerDisplay = document.getElementById('answer-display');
-  const answerVal     = document.getElementById('answer-val');
-  const feedbackEl    = document.getElementById('feedback');
-  const enterBtn      = document.getElementById('enter-btn');
-  const heatmapGrid   = document.getElementById('heatmap-grid');
-  const hmStats       = document.getElementById('hm-stats');
+  // ── ui updaters ──────────────────────────────────
+  function updateCumulative() {
+    dom.cumulative.textContent = '累積 ' + totalAttempts() + ' 問';
+  }
+  function updateRemain() {
+    dom.leftRemain.textContent = 'あと ' + leftRemain + ' 問';
+    dom.progressFill.style.width = ((ROUND_SIZE - leftRemain) / ROUND_SIZE * 100) + '%';
+  }
+  function updateScore() {
+    dom.correctCount.textContent = totalCorrect;
+    dom.streakCount.textContent  = streak;
+    dom.totalCount.textContent   = totalAnswered;
+  }
 
+  // ── question selection ───────────────────────────
   function pickLeftOp() {
-    leftOp = Math.floor(Math.random() * 8) + 2; // 2-9
-    leftRemain = 20;
-    leftDisplay.textContent = leftOp;
+    leftOp = Math.floor(Math.random() * 8) + 2;
+    leftRemain = ROUND_SIZE;
+    dom.leftDisplay.textContent = leftOp;
     updateRemain();
   }
-
-  function updateRemain() {
-    leftRemainEl.textContent = 'あと ' + leftRemain + ' 問';
-    progressFill.style.width = ((20 - leftRemain) / 20 * 100) + '%';
-  }
-
   function pickRightOp() {
     const ws = [];
     for (let j = 2; j <= 9; j++) {
@@ -407,7 +459,7 @@ body {
       const s1 = stats[leftOp][j];
       const s2 = stats[j] ? stats[j][leftOp] : null;
       const att = s1.attempts + (s2 ? s2.attempts : 0);
-      const wrg = s1.wrong   + (s2 ? s2.wrong   : 0);
+      const wrg = s1.wrong    + (s2 ? s2.wrong   : 0);
       const er  = att > 0 ? wrg / att : 0;
       ws.push({ j, w: 1 + er * 5 });
     }
@@ -419,57 +471,57 @@ body {
     }
     return ws[ws.length - 1].j;
   }
-
   function newQuestion() {
     if (leftRemain <= 0) pickLeftOp();
     curA = leftOp;
     curB = pickRightOp();
     lastB = curB;
     curAnswer = curA * curB;
-    questionEl.textContent = curA + ' × ' + curB + ' ＝';
+    dom.question.textContent = curA + ' × ' + curB + ' ＝';
     userInput = '';
     answered  = false;
-    answerVal.textContent = '＿';
-    answerDisplay.className = 'answer-display';
-    feedbackEl.textContent  = '';
-    feedbackEl.className    = 'feedback';
-    enterBtn.removeAttribute('disabled');
+    dom.answerVal.textContent  = '＿';
+    dom.answerDisplay.className = 'answer-display';
+    dom.feedback.textContent  = '';
+    dom.feedback.className    = 'feedback';
+    dom.enterBtn.removeAttribute('disabled');
+    timer.resetQuestion();
   }
 
+  // ── answer submission ────────────────────────────
   function submit() {
     if (answered || userInput === '') return;
     answered = true;
-    enterBtn.setAttribute('disabled', 'true');
+    dom.enterBtn.setAttribute('disabled', 'true');
 
     const n  = parseInt(userInput, 10);
     const ok = n === curAnswer;
+    const elapsed = +timer.elapsedForQuestion().toFixed(2);
 
-    stats[curA][curB].attempts++;
+    const cell = stats[curA][curB];
+    cell.attempts++;
+    cell.times.push(elapsed);
+    if (!ok) cell.wrong++;
+
     totalAnswered++;
     leftRemain--;
+    if (ok) { totalCorrect++; streak++; } else { streak = 0; }
+
     updateRemain();
-    totalCount.textContent = totalAnswered;
+    updateScore();
+    updateCumulative();
 
     if (ok) {
-      totalCorrect++;
-      streak++;
-      correctCount.textContent = totalCorrect;
-      streakCount.textContent  = streak;
-      answerDisplay.classList.add('correct');
-      feedbackEl.className  = 'feedback correct';
-      feedbackEl.textContent = streak >= 3 ? '正解！ 🔥 ' + streak + '連続！' : '正解！';
-      saveStats(); // ← persist after every answer
-      setTimeout(newQuestion, 450);
+      dom.answerDisplay.classList.add('correct');
+      dom.feedback.className   = 'feedback correct';
+      dom.feedback.textContent = streak >= 3 ? '正解！ 🔥 ' + streak + '連続！' : '正解！';
     } else {
-      stats[curA][curB].wrong++;
-      streak = 0;
-      streakCount.textContent = '0';
-      answerDisplay.classList.add('wrong');
-      feedbackEl.className   = 'feedback wrong';
-      feedbackEl.textContent = '✗ 正解は ' + curAnswer;
-      saveStats(); // ← persist after every answer
-      setTimeout(newQuestion, 1300);
+      dom.answerDisplay.classList.add('wrong');
+      dom.feedback.className   = 'feedback wrong';
+      dom.feedback.textContent = '✗ 正解は ' + curAnswer;
     }
+    saveStats();
+    setTimeout(newQuestion, ok ? 450 : 1300);
   }
 
   // ── heatmap ──────────────────────────────────────
@@ -479,32 +531,35 @@ body {
     const b = Math.round(0x75 + t * (0x30 - 0x75));
     return `rgb(${r},${g},${b})`;
   }
-
+  function avgTime(times) {
+    if (!times.length) return 0;
+    return times.reduce((a, b) => a + b, 0) / times.length;
+  }
   function showHeatmap() {
-    quizSection.classList.add('hidden');
-    heatmapSection.classList.remove('hidden');
+    timer.stop();
+    dom.quizSection.classList.add('hidden');
+    dom.heatmapSection.classList.remove('hidden');
     buildHeatmap();
   }
-
   function buildHeatmap() {
-    heatmapGrid.innerHTML = '';
+    dom.heatmapGrid.innerHTML = '';
 
     const corner = document.createElement('div');
     corner.className = 'hm-head';
-    heatmapGrid.appendChild(corner);
+    dom.heatmapGrid.appendChild(corner);
 
     for (let j = 2; j <= 9; j++) {
       const h = document.createElement('div');
       h.className = 'hm-head';
       h.textContent = j;
-      heatmapGrid.appendChild(h);
+      dom.heatmapGrid.appendChild(h);
     }
 
     for (let i = 2; i <= 9; i++) {
       const rl = document.createElement('div');
       rl.className = 'hm-head';
       rl.textContent = i;
-      heatmapGrid.appendChild(rl);
+      dom.heatmapGrid.appendChild(rl);
 
       for (let j = 2; j <= 9; j++) {
         const cell = document.createElement('div');
@@ -516,21 +571,23 @@ body {
         } else {
           const er = s.wrong / s.attempts;
           cell.style.background = lerpColor(er);
-          if (s.attempts >= 2) {
-            cell.textContent = Math.round(er * 100) + '%';
-          }
+          if (s.attempts >= 2) cell.textContent = Math.round(er * 100) + '%';
         }
+        const avg = avgTime(s.times);
+        const avgStr = avg > 0 ? '\n平均 ' + avg.toFixed(1) + '秒' : '';
         cell.title = i + ' × ' + j + ' ＝ ' + (i*j) +
-          (s.attempts ? '\n' + s.attempts + '回中 ' + s.wrong + '回ミス' : '\n未回答');
-        heatmapGrid.appendChild(cell);
+          (s.attempts ? '\n' + s.attempts + '回中 ' + s.wrong + '回ミス' + avgStr : '\n未回答');
+        dom.heatmapGrid.appendChild(cell);
       }
     }
 
-    // summary stats (cumulative)
+    // summary (cumulative)
     let worstEr = -1, worstLbl = '-', bestEr = 2, bestLbl = '-';
+    let allTimes = [];
     for (let i = 2; i <= 9; i++) {
       for (let j = 2; j <= 9; j++) {
         const s = stats[i][j];
+        if (s.times.length) allTimes = allTimes.concat(s.times);
         if (!s.attempts) continue;
         const er = s.wrong / s.attempts;
         if (er > worstEr) { worstEr = er; worstLbl = i + '×' + j; }
@@ -538,14 +595,15 @@ body {
       }
     }
 
-    const totalAll   = totalAttemptsInStats(stats);
+    const totalAll = totalAttempts();
     let correctAll = 0;
     for (let i = 2; i <= 9; i++)
       for (let j = 2; j <= 9; j++)
         correctAll += stats[i][j].attempts - stats[i][j].wrong;
     const accAll = totalAll > 0 ? Math.round(correctAll / totalAll * 100) : 0;
+    const avgAll = allTimes.length ? avgTime(allTimes).toFixed(1) : '-';
 
-    hmStats.innerHTML = `
+    dom.hmStats.innerHTML = `
       <div class="stat-card">
         <div class="s-label">累積正解率</div>
         <div class="s-val" style="color:var(--accent)">${accAll}%</div>
@@ -553,6 +611,10 @@ body {
       <div class="stat-card">
         <div class="s-label">累積問題数</div>
         <div class="s-val">${totalAll}</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">平均解答時間</div>
+        <div class="s-val">${avgAll}<span style="font-size:14px;color:var(--text2)">${avgAll === '-' ? '' : '秒'}</span></div>
       </div>
       <div class="stat-card">
         <div class="s-label">最も苦手</div>
@@ -564,21 +626,31 @@ body {
       </div>`;
   }
 
-  function restartGame() {
-    // Keep cumulative stats — only reset session counters
-    totalCorrect = 0; totalAnswered = 0; streak = 0; lastB = -1;
-    correctCount.textContent = '0';
-    streakCount.textContent  = '0';
-    totalCount.textContent   = '0';
-    heatmapSection.classList.add('hidden');
-    quizSection.classList.remove('hidden');
-    updateNotice();
+  // ── flow control ─────────────────────────────────
+  function beginSession() {
+    dom.startModal.classList.add('hidden');
     pickLeftOp();
     newQuestion();
+    timer.start();
+  }
+  function restartGame() {
+    totalCorrect = 0; totalAnswered = 0; streak = 0; lastB = -1;
+    updateScore();
+    dom.heatmapSection.classList.add('hidden');
+    dom.quizSection.classList.remove('hidden');
+    dom.startModal.classList.remove('hidden');
+    updateCumulative();
+  }
+  function resetAllRecords() {
+    if (!confirm('記録をすべてリセットしますか？')) return;
+    clearStorage();
+    stats = makeEmptyStats();
+    updateCumulative();
+    buildHeatmap();
   }
 
-  // ── events ──────────────────────────────────────
-  document.getElementById('keypad').addEventListener('click', e => {
+  // ── events ───────────────────────────────────────
+  dom.keypad.addEventListener('click', e => {
     const btn = e.target.closest('.key');
     if (!btn || answered) return;
     const n = btn.dataset.n;
@@ -590,23 +662,18 @@ body {
       if (userInput.length >= 2) return;
       userInput += n;
     }
-    answerVal.textContent = userInput === '' ? '＿' : userInput;
+    dom.answerVal.textContent = userInput === '' ? '＿' : userInput;
   });
+  dom.endBtn.addEventListener('click', showHeatmap);
+  dom.restartBtn.addEventListener('click', restartGame);
+  dom.clearBtn.addEventListener('click', resetAllRecords);
+  dom.startBtn.addEventListener('click', beginSession);
 
-  document.getElementById('end-btn').addEventListener('click', showHeatmap);
-  document.getElementById('restart-btn').addEventListener('click', restartGame);
-
-  document.getElementById('clear-btn').addEventListener('click', () => {
-    if (!confirm('記録をすべてリセットしますか？')) return;
-    clearStats();
-    stats = makeEmptyStats();
-    updateNotice();
-  });
-
-  // ── init ────────────────────────────────────────
-  updateNotice();
-  pickLeftOp();
-  newQuestion();
+  // ── init ─────────────────────────────────────────
+  updateCumulative();
+  updateScore();
+  dom.leftDisplay.textContent = '?';
+  dom.timerDisplay.textContent = '0秒';
 })();
 </script>
 </body>
