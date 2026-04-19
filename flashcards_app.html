@@ -201,7 +201,7 @@ body {
 .card-inner {
   position: absolute;
   inset: 0;
-  transition: transform 0.55s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: transform 0.28s cubic-bezier(0.4, 0.0, 0.2, 1);
   transform-style: preserve-3d;
 }
 .card-inner.flipped { transform: rotateY(180deg); }
@@ -607,6 +607,7 @@ body {
   const SETTINGS_KEY = 'flashcards_settings_v1';
   const RECORDS_KEY  = 'flashcards_records_v1';
   const ADVANCE_DELAY_MS = 700;
+  const FLIP_MS = 280;
 
   const defaultSettings = {
     categories: {
@@ -790,6 +791,7 @@ body {
   let cardIdx = 0;
   let gaugeValue = 0;
   let advanceTimer = null;
+  let backUpdateTimer = null;
   let cardShownAt = 0;
 
   // build the 7-cell gauge bar once
@@ -900,25 +902,36 @@ body {
   function showCard(idx) {
     if (deck.length === 0) return;
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    if (backUpdateTimer) { clearTimeout(backUpdateTimer); backUpdateTimer = null; }
     cardIdx = Math.max(0, Math.min(idx, deck.length - 1));
     const card = deck[cardIdx];
 
+    const wasFlipped = cardInner.classList.contains('flipped');
     cardInner.classList.remove('flipped');
     resetGauge();
     cardShownAt = Date.now();
 
+    // Front face: update immediately so it's correct as the flip rotates into view.
     document.getElementById('card-front-cat').textContent = card.cat;
-    document.getElementById('card-back-cat').textContent = card.cat;
     document.getElementById('card-question').innerHTML = card.q;
-    document.getElementById('card-answer').innerHTML = card.a;
-    const hintEl = document.getElementById('card-hint');
-    if (card.hint) {
-      hintEl.textContent = card.hint;
-      hintEl.style.display = '';
-    } else {
-      hintEl.textContent = '';
-      hintEl.style.display = 'none';
-    }
+
+    // Back face: defer until the flip-back animation finishes, otherwise the
+    // next card's answer is briefly visible during the rotation.
+    const updateBack = () => {
+      backUpdateTimer = null;
+      document.getElementById('card-back-cat').textContent = card.cat;
+      document.getElementById('card-answer').innerHTML = card.a;
+      const hintEl = document.getElementById('card-hint');
+      if (card.hint) {
+        hintEl.textContent = card.hint;
+        hintEl.style.display = '';
+      } else {
+        hintEl.textContent = '';
+        hintEl.style.display = 'none';
+      }
+    };
+    if (wasFlipped) backUpdateTimer = setTimeout(updateBack, FLIP_MS);
+    else updateBack();
 
     progressLabel.textContent = `${cardIdx + 1} / ${deck.length}`;
     progressFill.style.width = `${((cardIdx + 1) / deck.length) * 100}%`;
@@ -946,6 +959,18 @@ body {
   function handleRightTap() {
     if (advanceTimer) return;
     if (!cardInner.classList.contains('flipped')) {
+      // Flush any pending back-face update so the user sees the correct answer
+      // when they flip in fast succession.
+      if (backUpdateTimer) {
+        clearTimeout(backUpdateTimer);
+        backUpdateTimer = null;
+        const card = deck[cardIdx];
+        document.getElementById('card-back-cat').textContent = card.cat;
+        document.getElementById('card-answer').innerHTML = card.a;
+        const hintEl = document.getElementById('card-hint');
+        if (card.hint) { hintEl.textContent = card.hint; hintEl.style.display = ''; }
+        else { hintEl.textContent = ''; hintEl.style.display = 'none'; }
+      }
       cardInner.classList.add('flipped');
     }
   }
