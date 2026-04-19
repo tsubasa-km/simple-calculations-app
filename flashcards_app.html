@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>暗記カード</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #ffffff;
+  --bg2: #f4f3ef;
+  --bg3: #eceae4;
+  --text: #1a1a1a;
+  --text2: #888780;
+  --border: rgba(0,0,0,0.13);
+  --border2: rgba(0,0,0,0.22);
+  --accent: #533AB7;
+  --accent-d: #3C2B8C;
+  --correct: #1D9E75;
+  --wrong: #D85A30;
+  --r-lg: 12px;
+  --r-xl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181818;
+    --bg2: #242422;
+    --bg3: #2d2d2b;
+    --text: #f0efea;
+    --text2: #888780;
+    --border: rgba(255,255,255,0.1);
+    --border2: rgba(255,255,255,0.2);
+  }
+}
+body {
+  font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+#app {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.25rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.hidden { display: none !important; }
+
+/* ---------- settings ---------- */
+.title-row { display: flex; flex-direction: column; gap: 4px; }
+.page-title { font-size: 20px; font-weight: 600; letter-spacing: 0.02em; }
+.page-sub { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 0.08em;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+.category-list { display: flex; flex-direction: column; gap: 6px; }
+.category-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+}
+.category-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+.category-head input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.category-opts {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text2);
+  padding-left: 28px;
+  flex-wrap: wrap;
+}
+.category-opts select {
+  padding: 3px 6px;
+  border: 0.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.category-opts select:focus { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+.category-row.disabled .category-opts { opacity: 0.4; pointer-events: none; }
+
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  padding: 0 4px;
+}
+.count-label { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text2); }
+.count-label select {
+  padding: 4px 8px;
+  border: 0.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.start-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--r-lg);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  margin-top: 4px;
+}
+.start-btn:active { background: var(--accent-d); transform: scale(0.99); }
+.start-btn:disabled { background: var(--bg3); color: var(--text2); cursor: not-allowed; }
+
+/* ---------- card section ---------- */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.back-btn {
+  padding: 7px 14px;
+  border-radius: 18px;
+  border: 0.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.back-btn:active { background: var(--bg3); transform: scale(0.96); }
+.progress-label {
+  font-size: 13px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.progress-wrap {
+  width: 100%;
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.card-wrap {
+  perspective: 1200px;
+  width: 100%;
+  aspect-ratio: 4/5;
+  max-height: 58dvh;
+  cursor: pointer;
+  position: relative;
+  margin-top: 4px;
+}
+.card-inner {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.55s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.card-inner.flipped { transform: rotateY(180deg); }
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 22px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+  text-align: center;
+}
+@media (prefers-color-scheme: dark) {
+  .card-face { box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 1.5px 4px rgba(0,0,0,0.2); }
+}
+.card-front {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+}
+.card-back {
+  background: var(--accent);
+  color: white;
+  transform: rotateY(180deg);
+}
+.card-category {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text2);
+  text-transform: uppercase;
+  font-weight: 600;
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.card-back .card-category { color: rgba(255,255,255,0.7); }
+.card-question {
+  font-size: clamp(32px, 10vw, 44px);
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+.card-question sup { font-size: 0.6em; vertical-align: super; }
+.card-answer {
+  font-size: clamp(28px, 9vw, 40px);
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+.card-hint {
+  margin-top: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.75);
+  max-width: 90%;
+}
+.tap-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.card-back .tap-hint { color: rgba(255,255,255,0.5); }
+
+.nav-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.nav-btn {
+  flex: 1;
+  padding: 14px;
+  border: 0.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text);
+  border-radius: var(--r-lg);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nav-btn:active { background: var(--bg3); transform: scale(0.98); }
+.nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.nav-btn.primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+}
+.nav-btn.primary:active { background: var(--accent-d); }
+
+.empty-notice {
+  font-size: 13px;
+  color: var(--wrong);
+  text-align: center;
+  padding: 8px;
+  display: none;
+}
+.empty-notice.show { display: block; }
+
+.storage-notice { font-size: 10px; color: var(--text2); text-align: center; margin-top: 12px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ======= Settings ======= -->
+  <section id="settings-section">
+    <div class="title-row">
+      <h1 class="page-title">暗記カード</h1>
+      <p class="page-sub">カードをタップして答えを確認する、単語帳スタイルの暗記アプリ。試験で役立つ数字の組み合わせを覚えよう。</p>
+    </div>
+
+    <div class="section-title">四則演算</div>
+    <div class="category-list">
+      <div class="category-row" data-row="add">
+        <label class="category-head">
+          <input type="checkbox" data-cat="add">
+          <span>足し算 +</span>
+        </label>
+        <div class="category-opts">
+          <span>桁数:</span>
+          <select data-opt="add.minDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+            <option value="3">3桁</option>
+          </select>
+          <span>〜</span>
+          <select data-opt="add.maxDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+            <option value="3">3桁</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="category-row" data-row="sub">
+        <label class="category-head">
+          <input type="checkbox" data-cat="sub">
+          <span>引き算 −</span>
+        </label>
+        <div class="category-opts">
+          <span>桁数:</span>
+          <select data-opt="sub.minDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+            <option value="3">3桁</option>
+          </select>
+          <span>〜</span>
+          <select data-opt="sub.maxDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+            <option value="3">3桁</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="category-row" data-row="mul">
+        <label class="category-head">
+          <input type="checkbox" data-cat="mul">
+          <span>掛け算 ×</span>
+        </label>
+        <div class="category-opts">
+          <span>桁数:</span>
+          <select data-opt="mul.minDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+            <option value="3">3桁</option>
+          </select>
+          <span>〜</span>
+          <select data-opt="mul.maxDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+            <option value="3">3桁</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="category-row" data-row="div">
+        <label class="category-head">
+          <input type="checkbox" data-cat="div">
+          <span>割り算 ÷</span>
+        </label>
+        <div class="category-opts">
+          <span>除数・商:</span>
+          <select data-opt="div.minDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+          </select>
+          <span>〜</span>
+          <select data-opt="div.maxDigits">
+            <option value="1">1桁</option>
+            <option value="2">2桁</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">数学的な組み合わせ</div>
+    <div class="category-list">
+      <div class="category-row" data-row="squares">
+        <label class="category-head">
+          <input type="checkbox" data-cat="squares">
+          <span>平方（二乗）</span>
+        </label>
+        <div class="category-opts">
+          11² 〜
+          <select data-opt="squares.max">
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="25">25</option>
+            <option value="30">30</option>
+          </select>
+          <span>²</span>
+        </div>
+      </div>
+
+      <div class="category-row" data-row="cubes">
+        <label class="category-head">
+          <input type="checkbox" data-cat="cubes">
+          <span>立方（三乗）</span>
+        </label>
+        <div class="category-opts">
+          2³ 〜
+          <select data-opt="cubes.max">
+            <option value="8">8</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="15">15</option>
+          </select>
+          <span>³</span>
+        </div>
+      </div>
+
+      <div class="category-row" data-row="factorials">
+        <label class="category-head">
+          <input type="checkbox" data-cat="factorials">
+          <span>階乗</span>
+        </label>
+        <div class="category-opts">
+          3! 〜
+          <select data-opt="factorials.max">
+            <option value="6">6</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+          </select>
+          <span>!</span>
+        </div>
+      </div>
+
+      <div class="category-row" data-row="powersOf2">
+        <label class="category-head">
+          <input type="checkbox" data-cat="powersOf2">
+          <span>2のべき乗</span>
+        </label>
+        <div class="category-opts">
+          2⁴ 〜 2<sup>
+          <select data-opt="powersOf2.max" style="margin:0 2px;">
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="16">16</option>
+            <option value="20">20</option>
+          </select>
+          </sup>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">定数・無理数</div>
+    <div class="category-list">
+      <div class="category-row" data-row="constants">
+        <label class="category-head">
+          <input type="checkbox" data-cat="constants">
+          <span>定数・無理数（π, e, √, log, 分数 等）</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <label class="count-label">
+        <span>学習枚数</span>
+        <select data-opt="count">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="empty-notice" id="empty-notice">少なくとも1つのカテゴリを選択してください</div>
+    <button class="start-btn" id="start-btn">学習開始</button>
+
+    <p class="storage-notice">※ 設定はこの端末のブラウザに保存されます。</p>
+  </section>
+
+  <!-- ======= Card ======= -->
+  <section id="card-section" class="hidden">
+    <div class="card-header">
+      <button class="back-btn" id="back-btn">← 設定に戻る</button>
+      <span class="progress-label" id="progress-label">1 / 20</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="card-wrap" id="card-wrap">
+      <div class="card-inner" id="card-inner">
+        <div class="card-face card-front">
+          <div class="card-category" id="card-front-cat"></div>
+          <div class="card-question" id="card-question"></div>
+          <div class="tap-hint">タップで答え</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-category" id="card-back-cat"></div>
+          <div class="card-answer" id="card-answer"></div>
+          <div class="card-hint" id="card-hint"></div>
+          <div class="tap-hint">タップで戻る</div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" id="prev-btn">← 前</button>
+      <button class="nav-btn primary" id="next-btn">次 →</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SETTINGS_KEY = 'flashcards_settings_v1';
+
+  const defaultSettings = {
+    categories: {
+      add:        { enabled: true,  minDigits: 1, maxDigits: 2 },
+      sub:        { enabled: true,  minDigits: 1, maxDigits: 2 },
+      mul:        { enabled: true,  minDigits: 1, maxDigits: 1 },
+      div:        { enabled: true,  minDigits: 1, maxDigits: 2 },
+      squares:    { enabled: true,  max: 25 },
+      cubes:      { enabled: false, max: 10 },
+      factorials: { enabled: false, max: 8 },
+      powersOf2:  { enabled: false, max: 12 },
+      constants:  { enabled: true }
+    },
+    count: 20
+  };
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return clone(defaultSettings);
+      const parsed = JSON.parse(raw);
+      const merged = clone(defaultSettings);
+      if (parsed && parsed.categories) {
+        for (const key of Object.keys(merged.categories)) {
+          if (parsed.categories[key]) Object.assign(merged.categories[key], parsed.categories[key]);
+        }
+      }
+      if (typeof parsed.count === 'number') merged.count = parsed.count;
+      return merged;
+    } catch (e) {
+      return clone(defaultSettings);
+    }
+  }
+
+  function saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+  }
+
+  let settings = loadSettings();
+
+  // ---------- card generation ----------
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function digitRange(min, max) { return [Math.pow(10, min - 1), Math.pow(10, max) - 1]; }
+
+  function genAdd(s) {
+    const [lo, hi] = digitRange(s.minDigits, s.maxDigits);
+    const a = randInt(lo, hi), b = randInt(lo, hi);
+    return { cat: '足し算', q: `${a} + ${b}`, a: String(a + b) };
+  }
+  function genSub(s) {
+    const [lo, hi] = digitRange(s.minDigits, s.maxDigits);
+    let a = randInt(lo, hi), b = randInt(lo, hi);
+    if (b > a) [a, b] = [b, a];
+    return { cat: '引き算', q: `${a} − ${b}`, a: String(a - b) };
+  }
+  function genMul(s) {
+    const [lo, hi] = digitRange(s.minDigits, s.maxDigits);
+    const a = randInt(lo, hi), b = randInt(lo, hi);
+    return { cat: '掛け算', q: `${a} × ${b}`, a: String(a * b) };
+  }
+  function genDiv(s) {
+    const [lo, hi] = digitRange(s.minDigits, s.maxDigits);
+    const b = randInt(Math.max(lo, 1), hi);
+    const q = randInt(Math.max(lo, 1), hi);
+    return { cat: '割り算', q: `${b * q} ÷ ${b}`, a: String(q) };
+  }
+  function genSquare(s) {
+    const n = randInt(11, Math.max(11, s.max));
+    return { cat: '平方', q: `${n}<sup>2</sup>`, a: String(n * n) };
+  }
+  function genCube(s) {
+    const n = randInt(2, Math.max(2, s.max));
+    return { cat: '三乗', q: `${n}<sup>3</sup>`, a: String(n * n * n) };
+  }
+  const FACTS = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800];
+  function genFact(s) {
+    const n = randInt(3, Math.min(Math.max(3, s.max), FACTS.length - 1));
+    return { cat: '階乗', q: `${n}!`, a: String(FACTS[n]) };
+  }
+  function genPow2(s) {
+    const n = randInt(4, Math.max(4, s.max));
+    return { cat: '2のべき乗', q: `2<sup>${n}</sup>`, a: String(Math.pow(2, n)) };
+  }
+
+  const CONSTANTS = [
+    { q: 'π (円周率)',         a: '3.14159265…', h: '語呂: 産医師異国に向かう (3.14159265)' },
+    { q: 'e (自然対数の底)',    a: '2.71828182…', h: '語呂: 鮒一鉢二鉢一鉢二鉢 (2.71828 1828)' },
+    { q: '√2',                 a: '1.41421356…', h: '語呂: 一夜一夜に人見頃' },
+    { q: '√3',                 a: '1.7320508…',  h: '語呂: 人並みにおごれや' },
+    { q: '√5',                 a: '2.2360679…',  h: '語呂: 富士山麓オウム鳴く' },
+    { q: '√6',                 a: '2.4494897…',  h: '√2 × √3 ≒ 1.414 × 1.732' },
+    { q: '√7',                 a: '2.6457513…',  h: '語呂: 菜(2.6)に虫(4)いない(57)' },
+    { q: '√10',                a: '3.16227766…', h: '√10 = √2 · √5 ≒ 1.414 × 2.236' },
+    { q: 'log₁₀ 2',            a: '0.3010',      h: '語呂: おっ父さん (0.3010)' },
+    { q: 'log₁₀ 3',            a: '0.4771',      h: '語呂: 死なない (0.4771)' },
+    { q: 'log₁₀ 7',            a: '0.8451',      h: '語呂: はよ来い (0.8451)' },
+    { q: 'ln 2 (log<sub>e</sub> 2)',  a: '0.6931', h: '半減期・複利計算の定数' },
+    { q: 'ln 10 (log<sub>e</sub> 10)', a: '2.3026', h: '底変換: ln x = log₁₀ x × 2.3026' },
+    { q: '1 / 7',              a: '0.142857142857…', h: '循環節 142857 を繰り返す' },
+    { q: '1 / 3',              a: '0.333…',      h: '循環小数' },
+    { q: '1 / 6',              a: '0.1666…',     h: '循環小数' },
+    { q: '1 / 9',              a: '0.111…',      h: '循環小数' },
+    { q: '1 / 11',             a: '0.0909…',     h: '循環節 09 を繰り返す' },
+    { q: '2<sup>10</sup>',     a: '1024',        h: '1 KB = 1024 B の由来' },
+    { q: 'π²',                 a: '9.8696…',     h: '重力加速度 g ≒ π² (単位系の偶然)' },
+    { q: '黄金比 φ',            a: '1.61803398…', h: '(1 + √5) / 2' },
+    { q: 'sin 30°',            a: '1 / 2',       h: '基本三角比' },
+    { q: 'sin 45°',            a: '√2 / 2 ≒ 0.7071', h: '基本三角比' },
+    { q: 'sin 60°',            a: '√3 / 2 ≒ 0.8660', h: '基本三角比' },
+    { q: 'cos 30°',            a: '√3 / 2 ≒ 0.8660', h: '基本三角比' },
+    { q: 'cos 60°',            a: '1 / 2',       h: '基本三角比' },
+    { q: 'tan 30°',            a: '1 / √3 ≒ 0.5774', h: '基本三角比' },
+    { q: 'tan 60°',            a: '√3 ≒ 1.7320', h: '基本三角比' }
+  ];
+  function genConstant() {
+    const c = CONSTANTS[randInt(0, CONSTANTS.length - 1)];
+    return { cat: '定数・無理数', q: c.q, a: c.a, hint: c.h };
+  }
+
+  const GENERATORS = {
+    add: genAdd, sub: genSub, mul: genMul, div: genDiv,
+    squares: genSquare, cubes: genCube, factorials: genFact, powersOf2: genPow2,
+    constants: genConstant
+  };
+
+  function buildDeck() {
+    const enabled = Object.keys(settings.categories).filter(k => settings.categories[k].enabled);
+    if (enabled.length === 0) return [];
+    const deck = [];
+    const seen = new Set();
+    const count = settings.count;
+    let attempts = 0;
+    const maxAttempts = count * 20;
+    while (deck.length < count && attempts < maxAttempts) {
+      attempts++;
+      const catKey = enabled[randInt(0, enabled.length - 1)];
+      const card = GENERATORS[catKey](settings.categories[catKey]);
+      const key = `${catKey}:${card.q}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deck.push(card);
+      }
+    }
+    return deck;
+  }
+
+  // ---------- UI ----------
+  const settingsSection = document.getElementById('settings-section');
+  const cardSection = document.getElementById('card-section');
+  const startBtn = document.getElementById('start-btn');
+  const backBtn = document.getElementById('back-btn');
+  const cardWrap = document.getElementById('card-wrap');
+  const cardInner = document.getElementById('card-inner');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const progressLabel = document.getElementById('progress-label');
+  const progressFill = document.getElementById('progress-fill');
+  const emptyNotice = document.getElementById('empty-notice');
+
+  let deck = [];
+  let cardIdx = 0;
+
+  function refreshRowStates() {
+    document.querySelectorAll('.category-row').forEach(row => {
+      const key = row.dataset.row;
+      if (!key) return;
+      row.classList.toggle('disabled', !settings.categories[key].enabled);
+    });
+  }
+
+  function initSettingsUI() {
+    document.querySelectorAll('[data-cat]').forEach(el => {
+      const key = el.dataset.cat;
+      el.checked = settings.categories[key].enabled;
+      el.addEventListener('change', () => {
+        settings.categories[key].enabled = el.checked;
+        refreshRowStates();
+        saveSettings();
+      });
+    });
+
+    document.querySelectorAll('[data-opt]').forEach(el => {
+      const opt = el.dataset.opt;
+      if (opt === 'count') {
+        el.value = String(settings.count);
+        el.addEventListener('change', () => {
+          settings.count = parseInt(el.value, 10);
+          saveSettings();
+        });
+        return;
+      }
+      const [cat, field] = opt.split('.');
+      const cfg = settings.categories[cat];
+      if (!cfg || cfg[field] === undefined) return;
+      el.value = String(cfg[field]);
+      el.addEventListener('change', () => {
+        cfg[field] = parseInt(el.value, 10);
+        // Keep min <= max for digit-range operations
+        if (cfg.minDigits !== undefined && cfg.maxDigits !== undefined) {
+          if (cfg.minDigits > cfg.maxDigits) {
+            if (field === 'minDigits') cfg.maxDigits = cfg.minDigits;
+            else cfg.minDigits = cfg.maxDigits;
+            const other = field === 'minDigits' ? 'maxDigits' : 'minDigits';
+            const sel = document.querySelector(`[data-opt="${cat}.${other}"]`);
+            if (sel) sel.value = String(cfg[other]);
+          }
+        }
+        saveSettings();
+      });
+    });
+
+    refreshRowStates();
+  }
+
+  function showCard(idx) {
+    if (deck.length === 0) return;
+    cardIdx = Math.max(0, Math.min(idx, deck.length - 1));
+    const card = deck[cardIdx];
+
+    cardInner.classList.remove('flipped');
+
+    document.getElementById('card-front-cat').textContent = card.cat;
+    document.getElementById('card-back-cat').textContent = card.cat;
+    document.getElementById('card-question').innerHTML = card.q;
+    document.getElementById('card-answer').innerHTML = card.a;
+    const hintEl = document.getElementById('card-hint');
+    if (card.hint) {
+      hintEl.textContent = card.hint;
+      hintEl.style.display = '';
+    } else {
+      hintEl.textContent = '';
+      hintEl.style.display = 'none';
+    }
+
+    progressLabel.textContent = `${cardIdx + 1} / ${deck.length}`;
+    progressFill.style.width = `${((cardIdx + 1) / deck.length) * 100}%`;
+
+    prevBtn.disabled = cardIdx === 0;
+    nextBtn.textContent = cardIdx === deck.length - 1 ? '完了 ✓' : '次 →';
+  }
+
+  function startDeck() {
+    deck = buildDeck();
+    if (deck.length === 0) {
+      emptyNotice.classList.add('show');
+      return;
+    }
+    emptyNotice.classList.remove('show');
+    settingsSection.classList.add('hidden');
+    cardSection.classList.remove('hidden');
+    showCard(0);
+    window.scrollTo(0, 0);
+  }
+
+  function exitDeck() {
+    cardSection.classList.add('hidden');
+    settingsSection.classList.remove('hidden');
+    window.scrollTo(0, 0);
+  }
+
+  cardWrap.addEventListener('click', () => {
+    cardInner.classList.toggle('flipped');
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (cardIdx >= deck.length - 1) {
+      exitDeck();
+    } else {
+      showCard(cardIdx + 1);
+    }
+  });
+
+  prevBtn.addEventListener('click', () => {
+    if (cardIdx > 0) showCard(cardIdx - 1);
+  });
+
+  backBtn.addEventListener('click', exitDeck);
+  startBtn.addEventListener('click', startDeck);
+
+  document.addEventListener('keydown', (e) => {
+    if (cardSection.classList.contains('hidden')) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      cardInner.classList.toggle('flipped');
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      nextBtn.click();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (!prevBtn.disabled) prevBtn.click();
+    } else if (e.key === 'Escape') {
+      exitDeck();
+    }
+  });
+
+  initSettingsUI();
+})();
+</script>
+</body>
+</html>
