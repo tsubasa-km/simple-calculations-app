@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学習ダッシュボード</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff;
+  --bg2: #f4f3ef;
+  --bg3: #eceae4;
+  --text: #1a1a1a;
+  --text2: #888780;
+  --border: rgba(0,0,0,0.13);
+  --border2: rgba(0,0,0,0.22);
+  --accent: #533AB7;
+  --accent-d: #3C2B8C;
+  --correct: #1D9E75;
+  --wrong: #D85A30;
+  --neutral: #b3b1aa;
+  --r-lg: 12px;
+  --r-xl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181818;
+    --bg2: #242422;
+    --bg3: #2d2d2b;
+    --text: #f0efea;
+    --text2: #888780;
+    --border: rgba(255,255,255,0.1);
+    --border2: rgba(255,255,255,0.2);
+    --neutral: #555;
+  }
+}
+body {
+  font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+}
+#app {
+  width: 100%;
+  max-width: 720px;
+  padding: 1.25rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.title-row { display: flex; flex-direction: column; gap: 6px; }
+.page-title { font-size: 22px; font-weight: 600; letter-spacing: 0.02em; }
+.page-sub { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+.nav-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.nav-link {
+  flex: 1 1 auto;
+  padding: 9px 12px;
+  border-radius: var(--r-lg);
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  text-align: center;
+  transition: background 0.15s;
+}
+.nav-link:hover { background: var(--bg3); }
+.nav-link.primary { background: var(--accent); color: #fff; border: none; }
+
+.section {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 1rem 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.section-sub { font-size: 11px; color: var(--text2); font-weight: 400; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+.stat-card {
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-label { font-size: 11px; color: var(--text2); letter-spacing: 0.04em; }
+.stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.stat-value .unit { font-size: 12px; color: var(--text2); margin-left: 2px; font-weight: 500; }
+
+/* heatmap (mini) */
+.hm-grid {
+  display: grid;
+  grid-template-columns: 22px repeat(8, 1fr);
+  gap: 2px;
+  max-width: 360px;
+}
+.hm-head {
+  font-size: 10px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  height: 24px;
+}
+.hm-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.95);
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* mastery histogram */
+.histo {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  align-items: end;
+  height: 110px;
+  padding: 4px 0 0;
+}
+.histo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.histo-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--neutral);
+  transition: height 0.3s ease;
+  display: flex; justify-content: center; align-items: flex-start;
+  padding-top: 2px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.95);
+  font-weight: 600;
+}
+.histo-bar.neg { background: var(--wrong); }
+.histo-bar.pos { background: var(--correct); }
+.histo-label {
+  font-size: 10px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* category list */
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cat-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 70px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.cat-name { font-weight: 500; }
+.cat-count { font-size: 12px; color: var(--text2); text-align: right; }
+.cat-mastery {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* recent timeline */
+.timeline {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.timeline-row {
+  display: grid;
+  grid-template-columns: 60px 50px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.tl-time { font-size: 10px; color: var(--text2); font-variant-numeric: tabular-nums; }
+.tl-cat { font-size: 10px; color: var(--text2); }
+.tl-q {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-m {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 13px;
+}
+.tl-m.neg { color: var(--wrong); }
+.tl-m.pos { color: var(--correct); }
+.tl-m.zero { color: var(--text2); }
+
+.empty {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text2);
+  padding: 16px;
+}
+
+.danger-row { display: flex; justify-content: flex-end; }
+.danger-btn {
+  padding: 8px 14px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--r-lg);
+  background: var(--bg2);
+  color: var(--wrong);
+  font-size: 12px;
+  cursor: pointer;
+}
+.danger-btn:hover { background: var(--bg3); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="title-row">
+    <div class="page-title">📊 学習ダッシュボード</div>
+    <div class="page-sub">この端末に保存されている学習記録の集計です。複数端末では同期されません。</div>
+  </div>
+
+  <nav class="nav-row">
+    <a class="nav-link primary" href="multiplication_quiz_app.html">かけ算クイズ →</a>
+    <a class="nav-link primary" href="flashcards_app.html">暗記カード →</a>
+  </nav>
+
+  <!-- Multiplication quiz -->
+  <section class="section">
+    <div class="section-title">
+      <span>かけ算クイズ</span>
+      <span class="section-sub" id="mq-period">記録なし</span>
+    </div>
+    <div class="stat-grid" id="mq-stats"></div>
+    <div id="mq-heatmap-wrap"></div>
+  </section>
+
+  <!-- Flashcards -->
+  <section class="section">
+    <div class="section-title">
+      <span>暗記カード</span>
+      <span class="section-sub" id="fc-period">記録なし</span>
+    </div>
+    <div class="stat-grid" id="fc-stats"></div>
+    <div>
+      <div class="section-sub" style="margin-bottom:6px;">覚えた指標の分布（最新評価ベース）</div>
+      <div class="histo" id="fc-histo"></div>
+    </div>
+    <div>
+      <div class="section-sub" style="margin-bottom:6px;">カテゴリ別 平均mastery（記録回数）</div>
+      <div class="cat-list" id="fc-cats"></div>
+    </div>
+    <div>
+      <div class="section-sub" style="margin-bottom:6px;">直近の記録（最新50件）</div>
+      <div class="timeline" id="fc-timeline"></div>
+    </div>
+  </section>
+
+  <div class="danger-row">
+    <button class="danger-btn" id="clear-fc">暗記カード記録のみリセット</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const QUIZ_KEY     = 'quiz_stats_v1';
+  const FC_REC_KEY   = 'flashcards_records_v1';
+
+  const CAT_LABELS = {
+    add: '足し算', sub: '引き算', mul: '掛け算', div: '割り算',
+    squares: '平方', cubes: '三乗', factorials: '階乗', powersOf2: '2のべき乗',
+    constants: '定数・無理数'
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function lerpColor(t) {
+    const r = Math.round(0x1D + t * (0xD8 - 0x1D));
+    const g = Math.round(0x9E + t * (0x5A - 0x9E));
+    const b = Math.round(0x75 + t * (0x30 - 0x75));
+    return `rgb(${r},${g},${b})`;
+  }
+  function masteryColor(m) {
+    if (m === 0) return 'var(--neutral)';
+    const t = (m + 3) / 6; // 0..1
+    return lerpColor(1 - t); // -3 → red, +3 → green
+  }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+  }
+  function fmtRange(min, max) {
+    if (!min || !max) return '記録なし';
+    const a = new Date(min), b = new Date(max);
+    const fmt = d => `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+    return min === max ? fmt(a) : `${fmt(a)} 〜 ${fmt(b)}`;
+  }
+  function statCard(label, value, unit) {
+    const u = unit ? `<span class="unit">${unit}</span>` : '';
+    return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}${u}</div></div>`;
+  }
+
+  // ---------- multiplication quiz ----------
+  function loadQuizStats() {
+    try {
+      const raw = localStorage.getItem(QUIZ_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+  function renderMultiplication() {
+    const stats = loadQuizStats();
+    const statsEl = $('mq-stats');
+    const hmWrap  = $('mq-heatmap-wrap');
+    const periodEl = $('mq-period');
+    if (!stats) {
+      statsEl.innerHTML = '<div class="empty">まだ記録がありません</div>';
+      hmWrap.innerHTML = '';
+      return;
+    }
+
+    let totalAtt = 0, totalWrong = 0, allTimes = [];
+    let worstEr = -1, worstLbl = '-', bestEr = 2, bestLbl = '-';
+    for (let i = 2; i <= 9; i++) {
+      const row = stats[i] || {};
+      for (let j = 2; j <= 9; j++) {
+        const c = row[j];
+        if (!c) continue;
+        totalAtt += c.attempts || 0;
+        totalWrong += c.wrong || 0;
+        if (Array.isArray(c.times)) allTimes = allTimes.concat(c.times);
+        if (c.attempts > 0) {
+          const er = c.wrong / c.attempts;
+          if (er > worstEr) { worstEr = er; worstLbl = `${i}×${j}`; }
+          if (er < bestEr)  { bestEr  = er; bestLbl  = `${i}×${j}`; }
+        }
+      }
+    }
+    if (totalAtt === 0) {
+      statsEl.innerHTML = '<div class="empty">まだ記録がありません</div>';
+      hmWrap.innerHTML = '';
+      return;
+    }
+    periodEl.textContent = `累積 ${totalAtt} 問`;
+    const acc = Math.round((totalAtt - totalWrong) / totalAtt * 100);
+    const avgT = allTimes.length
+      ? (allTimes.reduce((s, x) => s + x, 0) / allTimes.length).toFixed(1)
+      : '-';
+
+    statsEl.innerHTML =
+      statCard('累積正解率', acc, '%') +
+      statCard('累積問題数', totalAtt, '問') +
+      statCard('平均解答時間', avgT, avgT === '-' ? '' : '秒') +
+      statCard('最も苦手', worstLbl, '') +
+      statCard('最も得意', bestLbl, '');
+
+    // mini heatmap
+    const grid = document.createElement('div');
+    grid.className = 'hm-grid';
+    grid.appendChild(Object.assign(document.createElement('div'), { className: 'hm-head' }));
+    for (let j = 2; j <= 9; j++) {
+      const h = document.createElement('div');
+      h.className = 'hm-head'; h.textContent = j;
+      grid.appendChild(h);
+    }
+    for (let i = 2; i <= 9; i++) {
+      const rl = document.createElement('div');
+      rl.className = 'hm-head'; rl.textContent = i;
+      grid.appendChild(rl);
+      for (let j = 2; j <= 9; j++) {
+        const c = (stats[i] && stats[i][j]) || { attempts: 0, wrong: 0 };
+        const cell = document.createElement('div');
+        cell.className = 'hm-cell';
+        if (c.attempts === 0) {
+          cell.style.background = 'var(--bg3)';
+          cell.style.color = 'var(--text2)';
+        } else {
+          const er = c.wrong / c.attempts;
+          cell.style.background = lerpColor(er);
+          if (c.attempts >= 2) cell.textContent = Math.round(er * 100) + '%';
+        }
+        cell.title = `${i}×${j}：${c.attempts}回中 ${c.wrong}回ミス`;
+        grid.appendChild(cell);
+      }
+    }
+    hmWrap.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex'; wrap.style.justifyContent = 'center'; wrap.style.padding = '4px 0';
+    wrap.appendChild(grid);
+    hmWrap.appendChild(wrap);
+  }
+
+  // ---------- flashcards ----------
+  function loadFcRecords() {
+    try {
+      const raw = localStorage.getItem(FC_REC_KEY);
+      if (!raw) return [];
+      const p = JSON.parse(raw);
+      return Array.isArray(p && p.records) ? p.records : [];
+    } catch (e) { return []; }
+  }
+  function renderFlashcards() {
+    const records = loadFcRecords();
+    const statsEl = $('fc-stats');
+    const histoEl = $('fc-histo');
+    const catsEl  = $('fc-cats');
+    const timelineEl = $('fc-timeline');
+    const periodEl = $('fc-period');
+
+    if (records.length === 0) {
+      statsEl.innerHTML = '<div class="empty">まだ記録がありません</div>';
+      histoEl.innerHTML = '';
+      catsEl.innerHTML = '';
+      timelineEl.innerHTML = '';
+      return;
+    }
+
+    const tsList = records.map(r => r.ts).filter(Boolean);
+    const minTs = Math.min.apply(null, tsList);
+    const maxTs = Math.max.apply(null, tsList);
+    periodEl.textContent = fmtRange(minTs, maxTs);
+
+    const total = records.length;
+    const sumM = records.reduce((s, r) => s + (r.mastery || 0), 0);
+    const avgM = (sumM / total).toFixed(2);
+    const uniqQ = new Set(records.map(r => `${r.catKey || ''}:${r.q}`)).size;
+
+    statsEl.innerHTML =
+      statCard('総記録数', total, '回') +
+      statCard('ユニーク問題数', uniqQ, '問') +
+      statCard('平均mastery', (sumM >= 0 ? '+' : '') + avgM, '');
+
+    // distribution: latest-mastery-per-card
+    const latest = {};
+    for (const r of records) {
+      const k = `${r.catKey || ''}:${r.q}`;
+      if (!latest[k] || latest[k].ts < r.ts) latest[k] = r;
+    }
+    const dist = { '-3': 0, '-2': 0, '-1': 0, '0': 0, '1': 0, '2': 0, '3': 0 };
+    Object.values(latest).forEach(r => {
+      const m = String(r.mastery);
+      if (dist[m] !== undefined) dist[m]++;
+    });
+    const maxCount = Math.max(1, ...Object.values(dist));
+    histoEl.innerHTML = '';
+    for (let v = -3; v <= 3; v++) {
+      const c = dist[String(v)];
+      const col = document.createElement('div');
+      col.className = 'histo-col';
+      const bar = document.createElement('div');
+      bar.className = 'histo-bar ' + (v < 0 ? 'neg' : v > 0 ? 'pos' : '');
+      bar.style.height = (c / maxCount * 100) + '%';
+      if (c > 0) bar.textContent = c;
+      const lbl = document.createElement('div');
+      lbl.className = 'histo-label';
+      lbl.textContent = v > 0 ? '+' + v : String(v);
+      col.appendChild(bar);
+      col.appendChild(lbl);
+      histoEl.appendChild(col);
+    }
+
+    // per-category aggregate
+    const byCat = {};
+    for (const r of records) {
+      const k = r.catKey || 'other';
+      if (!byCat[k]) byCat[k] = { sum: 0, count: 0 };
+      byCat[k].sum += (r.mastery || 0);
+      byCat[k].count++;
+    }
+    const cats = Object.keys(byCat)
+      .map(k => ({ k, count: byCat[k].count, avg: byCat[k].sum / byCat[k].count }))
+      .sort((a, b) => b.count - a.count);
+    catsEl.innerHTML = cats.map(c => {
+      const avgStr = (c.avg >= 0 ? '+' : '') + c.avg.toFixed(2);
+      const color = masteryColor(Math.round(c.avg));
+      return `<div class="cat-row">
+        <div class="cat-name">${CAT_LABELS[c.k] || c.k}</div>
+        <div class="cat-count">${c.count} 回</div>
+        <div class="cat-mastery" style="color:${color}">${avgStr}</div>
+      </div>`;
+    }).join('');
+
+    // recent timeline
+    const recent = records.slice().sort((a, b) => b.ts - a.ts).slice(0, 50);
+    timelineEl.innerHTML = recent.map(r => {
+      const m = r.mastery || 0;
+      const cls = m < 0 ? 'neg' : m > 0 ? 'pos' : 'zero';
+      const sign = m > 0 ? '+' : '';
+      return `<div class="timeline-row">
+        <div class="tl-time">${fmtDate(r.ts)}</div>
+        <div class="tl-cat">${CAT_LABELS[r.catKey] || r.cat || ''}</div>
+        <div class="tl-q">${r.q}</div>
+        <div class="tl-m ${cls}">${sign}${m}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- init ----------
+  renderMultiplication();
+  renderFlashcards();
+
+  $('clear-fc').addEventListener('click', () => {
+    if (!confirm('暗記カードの記録をすべて削除しますか？')) return;
+    try { localStorage.removeItem(FC_REC_KEY); } catch (e) {}
+    renderFlashcards();
+  });
+})();
+</script>
+</body>
+</html>

@@ -249,6 +249,13 @@ body {
   font-size: 16px; font-weight: 500; cursor: pointer;
 }
 .modal-start-btn:active { background: var(--accent-d); transform: scale(0.98); }
+.modal-link {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px;
+}
+.modal-link:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -323,6 +330,7 @@ body {
     <div class="modal-title">かけ算クイズ</div>
     <div class="modal-desc">スタートで計測開始。<br>各問題の経過時間を記録します。</div>
     <button class="modal-start-btn" id="start-btn">スタート</button>
+    <a href="dashboard.html" class="modal-link">📊 ダッシュボードを見る</a>
   </div>
 </div>
 
