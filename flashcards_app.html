@@ -636,9 +636,41 @@ body {
   function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
   function digitRange(min, max) { return [Math.pow(10, min - 1), Math.pow(10, max) - 1]; }
 
+  const REVERSE_MAP = (function () {
+    const map = {};
+    const add = (val, rep, rank) => {
+      if (val > 1e12) return;
+      const key = String(val);
+      if (!map[key]) map[key] = [];
+      if (!map[key].some(x => x.rep === rep)) map[key].push({ rep, rank });
+    };
+    // squares: 2²〜30²
+    for (let n = 2; n <= 30; n++) add(n * n, `${n}<sup>2</sup>`, n * 100 + 2);
+    // cubes: 2³〜15³
+    for (let n = 2; n <= 15; n++) add(n * n * n, `${n}<sup>3</sup>`, n * 100 + 3);
+    // powers: base^exp (base∈{2,3,5,7,10}, exp 2〜20)
+    for (const b of [2, 3, 5, 7, 10]) {
+      let v = 1;
+      for (let e = 1; e <= 20; e++) {
+        v *= b;
+        if (e >= 2) add(v, `${b}<sup>${e}</sup>`, b * 100 + e);
+      }
+    }
+    // factorials: 1!〜10! (place after powers via large rank)
+    const F = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800];
+    for (let n = 1; n <= 10; n++) add(F[n], `${n}!`, 1000000 + n);
+    // finalize: sort by rank asc, extract rep strings
+    const out = {};
+    for (const k of Object.keys(map)) {
+      out[k] = map[k].sort((a, b) => a.rank - b.rank).map(x => x.rep);
+    }
+    return out;
+  })();
+
   function maybeReverse(card, s) {
     if (s && s.reverse && Math.random() < 0.5) {
-      return { cat: card.cat + '（逆）', q: card.a, a: card.q };
+      const reps = REVERSE_MAP[card.a] || [card.q];
+      return { cat: '逆向き', q: card.a, a: reps.join(' ＝ ') };
     }
     return card;
   }
