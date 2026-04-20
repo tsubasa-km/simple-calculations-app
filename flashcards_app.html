@@ -107,6 +107,20 @@ body {
 }
 .category-opts select:focus { outline: 1.5px solid var(--accent); outline-offset: 1px; }
 .category-row.disabled .category-opts { opacity: 0.4; pointer-events: none; }
+.rev-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  margin-left: auto;
+}
+.rev-label input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
 
 .footer-row {
   display: flex;
@@ -403,6 +417,7 @@ body {
             <option value="30">30</option>
           </select>
           <span>²</span>
+          <label class="rev-label"><input type="checkbox" data-rev="squares"> 逆向きも</label>
         </div>
       </div>
 
@@ -420,6 +435,7 @@ body {
             <option value="15">15</option>
           </select>
           <span>³</span>
+          <label class="rev-label"><input type="checkbox" data-rev="cubes"> 逆向きも</label>
         </div>
       </div>
 
@@ -436,6 +452,7 @@ body {
             <option value="10">10</option>
           </select>
           <span>!</span>
+          <label class="rev-label"><input type="checkbox" data-rev="factorials"> 逆向きも</label>
         </div>
       </div>
 
@@ -460,6 +477,7 @@ body {
             <option value="10">10</option>
             <option value="12">12</option>
           </select>
+          <label class="rev-label"><input type="checkbox" data-rev="powers"> 逆向きも</label>
         </div>
       </div>
     </div>
@@ -563,10 +581,10 @@ body {
 
   const defaultSettings = {
     categories: {
-      squares:     { enabled: true,  max: 20 },
-      cubes:       { enabled: false, max: 10 },
-      factorials:  { enabled: false, max: 8 },
-      powers:      { enabled: false, base: 2, max: 10 },
+      squares:     { enabled: true,  max: 20, reverse: false },
+      cubes:       { enabled: false, max: 10, reverse: false },
+      factorials:  { enabled: false, max: 8,  reverse: false },
+      powers:      { enabled: false, base: 2, max: 10, reverse: false },
       pythagorean: { enabled: false },
       binomial:    { enabled: false },
       constants:   { enabled: true }
@@ -618,23 +636,29 @@ body {
   function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
   function digitRange(min, max) { return [Math.pow(10, min - 1), Math.pow(10, max) - 1]; }
 
+  function maybeReverse(card, s) {
+    if (s && s.reverse && Math.random() < 0.5) {
+      return { cat: card.cat + '（逆）', q: card.a, a: card.q };
+    }
+    return card;
+  }
   function genSquare(s) {
     const n = randInt(2, Math.max(2, s.max));
-    return { cat: '平方', q: `${n}<sup>2</sup>`, a: String(n * n) };
+    return maybeReverse({ cat: '平方', q: `${n}<sup>2</sup>`, a: String(n * n) }, s);
   }
   function genCube(s) {
     const n = randInt(2, Math.max(2, s.max));
-    return { cat: '三乗', q: `${n}<sup>3</sup>`, a: String(n * n * n) };
+    return maybeReverse({ cat: '三乗', q: `${n}<sup>3</sup>`, a: String(n * n * n) }, s);
   }
   const FACTS = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800];
   function genFact(s) {
     const n = randInt(3, Math.min(Math.max(3, s.max), FACTS.length - 1));
-    return { cat: '階乗', q: `${n}!`, a: String(FACTS[n]) };
+    return maybeReverse({ cat: '階乗', q: `${n}!`, a: String(FACTS[n]) }, s);
   }
   function genPow(s) {
     const base = s.base || 2;
     const n = randInt(2, Math.max(2, s.max));
-    return { cat: `${base}のべき乗`, q: `${base}<sup>${n}</sup>`, a: String(Math.pow(base, n)) };
+    return maybeReverse({ cat: `${base}のべき乗`, q: `${base}<sup>${n}</sup>`, a: String(Math.pow(base, n)) }, s);
   }
   const PYTH_TRIPLES = [[3,4,5],[5,12,13],[8,15,17],[7,24,25],[20,21,29],[9,40,41]];
   function genPythagorean() {
@@ -788,6 +812,17 @@ body {
       el.addEventListener('change', () => {
         settings.categories[key].enabled = el.checked;
         refreshRowStates();
+        saveSettings();
+      });
+    });
+
+    document.querySelectorAll('[data-rev]').forEach(el => {
+      const key = el.dataset.rev;
+      const cfg = settings.categories[key];
+      if (!cfg) return;
+      el.checked = !!cfg.reverse;
+      el.addEventListener('change', () => {
+        cfg.reverse = el.checked;
         saveSettings();
       });
     });
